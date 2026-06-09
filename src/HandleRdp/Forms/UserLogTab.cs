@@ -14,8 +14,9 @@ namespace HandleRdp.Forms
             Text = "RDP_USER_LOG";
             Controls.Add(_grid);
 
-            _grid.AddToolbarButton("重新查詢", (sender, e) => Reload());
-            Reload();
+            _grid.AddToolbarButton("查詢", (sender, e) => Reload());
+
+            // 啟動時不自動查詢，待使用者按「查詢」才向資料庫查詢。
         }
 
         private void Reload()

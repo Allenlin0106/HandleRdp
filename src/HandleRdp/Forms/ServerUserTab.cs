@@ -18,12 +18,12 @@ namespace HandleRdp.Forms
             _grid.Selectable = true; // 啟用左側勾選欄，供批次刪除逐筆勾選
             Controls.Add(_grid);
 
-            _grid.AddToolbarButton("重新查詢", (sender, e) => Reload());
+            _grid.AddToolbarButton("查詢", (sender, e) => Reload());
             _grid.AddToolbarButton("新增", (sender, e) => AddOne());
             _grid.AddToolbarButton("批次匯入(CSV)", (sender, e) => ImportCsv());
             _grid.AddToolbarButton("刪除勾選(逐筆輸入原因)", (sender, e) => DeleteChecked());
 
-            Reload();
+            // 啟動時不自動查詢，待使用者按「查詢」才向資料庫查詢。
         }
 
         private void Reload()

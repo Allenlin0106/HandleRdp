@@ -18,13 +18,13 @@ namespace HandleRdp.Forms
             Text = "RDP_SERVER_INFO";
             Controls.Add(_grid);
 
-            _grid.AddToolbarButton("重新查詢", (sender, e) => Reload());
+            _grid.AddToolbarButton("查詢", (sender, e) => Reload());
             _grid.AddToolbarButton("新增", (sender, e) => AddOne());
             _grid.AddToolbarButton("修改選取", (sender, e) => EditSelected());
             _grid.AddToolbarButton("批次匯入(CSV)", (sender, e) => ImportCsv());
             _grid.AddToolbarButton("刪除選取", (sender, e) => DeleteSelected());
 
-            Reload();
+            // 啟動時不自動查詢，待使用者按「查詢」才向資料庫查詢。
         }
 
         private void Reload()
