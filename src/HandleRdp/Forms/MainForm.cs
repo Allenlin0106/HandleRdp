@@ -1,22 +1,23 @@
 using System.Windows.Forms;
 
-namespace HandleRdp.Forms;
-
-/// <summary>主視窗：三個資料表各一個分頁。</summary>
-public sealed class MainForm : Form
+namespace HandleRdp.Forms
 {
-    public MainForm()
+    /// <summary>主視窗：三個資料表各一個分頁。</summary>
+    public sealed class MainForm : Form
     {
-        Text = "HandleRdp — RDP 伺服器與使用者管理";
-        Width = 1100;
-        Height = 700;
-        StartPosition = FormStartPosition.CenterScreen;
+        public MainForm()
+        {
+            Text = "HandleRdp — RDP 伺服器與使用者管理";
+            Width = 1100;
+            Height = 700;
+            StartPosition = FormStartPosition.CenterScreen;
 
-        var tabs = new TabControl { Dock = DockStyle.Fill };
-        tabs.TabPages.Add(new ServerUserTab());
-        tabs.TabPages.Add(new ServerInfoTab());
-        tabs.TabPages.Add(new UserLogTab());
+            var tabs = new TabControl { Dock = DockStyle.Fill };
+            tabs.TabPages.Add(new ServerUserTab());
+            tabs.TabPages.Add(new ServerInfoTab());
+            tabs.TabPages.Add(new UserLogTab());
 
-        Controls.Add(tabs);
+            Controls.Add(tabs);
+        }
     }
 }

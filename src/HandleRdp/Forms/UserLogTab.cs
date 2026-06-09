@@ -1,22 +1,26 @@
 using System.Windows.Forms;
 using HandleRdp.Data;
 
-namespace HandleRdp.Forms;
-
-/// <summary>RDP_USER_LOG 分頁：僅查詢與篩選（此表唯讀）。</summary>
-public sealed class UserLogTab : TabPage
+namespace HandleRdp.Forms
 {
-    private readonly RdpUserLogRepository _repo = new();
-    private readonly FilterableGrid _grid = new();
-
-    public UserLogTab()
+    /// <summary>RDP_USER_LOG 分頁：僅查詢與篩選（此表唯讀）。</summary>
+    public sealed class UserLogTab : TabPage
     {
-        Text = "RDP_USER_LOG";
-        Controls.Add(_grid);
+        private readonly RdpUserLogRepository _repo = new RdpUserLogRepository();
+        private readonly FilterableGrid _grid = new FilterableGrid();
 
-        _grid.AddToolbarButton("重新查詢", (_, _) => Reload());
-        Reload();
+        public UserLogTab()
+        {
+            Text = "RDP_USER_LOG";
+            Controls.Add(_grid);
+
+            _grid.AddToolbarButton("重新查詢", (sender, e) => Reload());
+            Reload();
+        }
+
+        private void Reload()
+        {
+            Ui.Guard(() => _grid.Bind(_repo.Query()));
+        }
     }
-
-    private void Reload() => Ui.Guard(() => _grid.Bind(_repo.Query()));
 }

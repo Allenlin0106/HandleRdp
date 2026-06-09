@@ -36,22 +36,25 @@
 <connectionStrings>
   <add name="RdpDb"
        connectionString="Server=你的主機;Database=RDP;User Id=帳號;Password=密碼;TrustServerCertificate=True;"
-       providerName="Microsoft.Data.SqlClient" />
+       providerName="System.Data.SqlClient" />
 </connectionStrings>
 ```
 
 > 假設三個資料表**已存在**於資料庫中，本專案不含建表腳本。
+> SQL 連線使用 .NET Framework **內建的 `System.Data.SqlClient`**，不需任何 NuGet 套件。
 
-## 建置與執行（需在 Windows 上）
+## 建置與執行（Visual Studio 2017）
 
-```powershell
-dotnet restore
-dotnet build -c Release
-dotnet run --project src/HandleRdp
+直接以 **Visual Studio 2017** 開啟 `HandleRdp.sln`，按 F5 建置並執行；
+或用命令列（VS2017 的開發者命令提示字元）：
+
+```cmd
+msbuild HandleRdp.sln /p:Configuration=Release
+bin\Release\HandleRdp.exe
 ```
 
-> 這是 `net48`（.NET Framework 4.8）SDK 樣式 WinForms 專案，**必須在 Windows 上**以 Visual Studio 2022
-> 或已安裝 .NET Framework 4.8 開發包的 `dotnet`/`msbuild` 建置。
+> 這是 **classic（非 SDK 樣式）`.csproj`**、目標 **.NET Framework 4.8**、語言 **C# 7.3** 的 WinForms 專案，
+> 以相容 Visual Studio 2017。請用 VS2017 或 `msbuild` 建置（classic 專案不適用 `dotnet build`）。
 > 本程式碼是在 Linux 容器中撰寫，**尚未經過編譯或實機執行驗證**，請在 Windows 上首次建置時留意編譯訊息。
 
 ## 批次匯入 CSV 格式
@@ -73,13 +76,15 @@ IT,Prod,RDPHOST01,rdp://host01,bob,2026-06-09
 ## 專案結構
 
 ```
-HandleRdp.sln
+HandleRdp.sln                 (Visual Studio 2017)
 src/HandleRdp/
+  HandleRdp.csproj            classic 專案檔 (net48, C# 7.3)
   App.config                  連線字串
   Program.cs                  進入點
+  Properties/AssemblyInfo.cs  組件資訊
   Models/Models.cs            POCO 與 UserKey
   Data/
-    Db.cs                     連線與設定載入
+    Db.cs                     連線與設定載入 (System.Data.SqlClient)
     RdpServerUserRepository.cs 新增/刪除（含交易內寫日誌）/查詢
     RdpUserLogRepository.cs   查詢
     RdpServerInfoRepository.cs 新增/修改/刪除/查詢
