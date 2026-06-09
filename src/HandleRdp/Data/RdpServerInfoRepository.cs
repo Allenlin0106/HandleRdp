@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
 using HandleRdp.Models;
 using Microsoft.Data.SqlClient;
@@ -47,7 +49,7 @@ public sealed class RdpServerInfoRepository
     /// <summary>依 Hostname 修改其餘欄位。</summary>
     public void Update(RdpServerInfo info)
     {
-        const string sql = """
+        const string sql = @"
             UPDATE RDP_SERVER_INFO
                SET Department = @Department,
                    Category = @Category,
@@ -55,8 +57,7 @@ public sealed class RdpServerInfoRepository
                    Sponsor = @Sponsor,
                    Create_Time = @Create_Time,
                    Claim_Time = @Claim_Time
-             WHERE Hostname = @Hostname
-            """;
+             WHERE Hostname = @Hostname";
         using var conn = Db.Open();
         using var cmd = new SqlCommand(sql, conn);
         BindNonKey(cmd, info);
@@ -93,12 +94,11 @@ public sealed class RdpServerInfoRepository
 
     private static void Insert(SqlConnection conn, SqlTransaction tx, RdpServerInfo info)
     {
-        const string sql = """
+        const string sql = @"
             INSERT INTO RDP_SERVER_INFO
                 (Department, Category, Hostname, Connectstring, Sponsor, Create_Time, Claim_Time)
             VALUES
-                (@Department, @Category, @Hostname, @Connectstring, @Sponsor, @Create_Time, @Claim_Time)
-            """;
+                (@Department, @Category, @Hostname, @Connectstring, @Sponsor, @Create_Time, @Claim_Time)";
         using var cmd = new SqlCommand(sql, conn, tx);
         Db.AddParam(cmd, "@Hostname", info.Hostname);
         BindNonKey(cmd, info);

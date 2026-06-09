@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
 using HandleRdp.Models;
 using Microsoft.Data.SqlClient;
@@ -97,12 +99,11 @@ public sealed class RdpServerUserRepository
 
     private static void InsertUser(SqlConnection conn, SqlTransaction tx, RdpServerUser u)
     {
-        const string sql = """
+        const string sql = @"
             INSERT INTO RDP_SERVER_USER
                 (Hostname, User_ID, Employee_ID, Login_Time, Logout_Time, Create_User, Create_Time, Claim_Time)
             VALUES
-                (@Hostname, @User_ID, @Employee_ID, @Login_Time, @Logout_Time, @Create_User, @Create_Time, @Claim_Time)
-            """;
+                (@Hostname, @User_ID, @Employee_ID, @Login_Time, @Logout_Time, @Create_User, @Create_Time, @Claim_Time)";
         using var cmd = new SqlCommand(sql, conn, tx);
         Db.AddParam(cmd, "@Hostname", u.Hostname);
         Db.AddParam(cmd, "@User_ID", u.User_ID);
@@ -146,12 +147,11 @@ public sealed class RdpServerUserRepository
         SqlConnection conn, SqlTransaction tx,
         string hostname, string userId, string employeeId, string? sponsor, string action)
     {
-        const string sql = """
+        const string sql = @"
             INSERT INTO RDP_USER_LOG
                 (Hostname, User_ID, Employee_ID, Sponsor, Action, Claim_Time)
             VALUES
-                (@Hostname, @User_ID, @Employee_ID, @Sponsor, @Action, @Claim_Time)
-            """;
+                (@Hostname, @User_ID, @Employee_ID, @Sponsor, @Action, @Claim_Time)";
         using var cmd = new SqlCommand(sql, conn, tx);
         Db.AddParam(cmd, "@Hostname", hostname);
         Db.AddParam(cmd, "@User_ID", userId);

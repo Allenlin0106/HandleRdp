@@ -1,3 +1,5 @@
+using System.Windows.Forms;
+
 namespace HandleRdp.Forms;
 
 /// <summary>主視窗：三個資料表各一個分頁。</summary>

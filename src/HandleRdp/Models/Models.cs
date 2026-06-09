@@ -1,3 +1,5 @@
+using System;
+
 namespace HandleRdp.Models;
 
 /// <summary>RDP_SERVER_USER 一筆紀錄。</summary>
@@ -29,4 +31,14 @@ public sealed class RdpServerInfo
 /// 刪除 RDP_SERVER_USER 時用來鎖定一筆紀錄的鍵值。
 /// 假設 (Hostname, User_ID) 可唯一識別一筆使用者紀錄。
 /// </summary>
-public readonly record struct UserKey(string Hostname, string User_ID);
+public readonly struct UserKey
+{
+    public string Hostname { get; }
+    public string User_ID { get; }
+
+    public UserKey(string hostname, string userId)
+    {
+        Hostname = hostname;
+        User_ID = userId;
+    }
+}

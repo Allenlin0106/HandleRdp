@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+
 namespace HandleRdp.Forms;
 
 /// <summary>
@@ -6,6 +11,13 @@ namespace HandleRdp.Forms;
 /// </summary>
 public static class Csv
 {
+    /// <summary>
+    /// 取得某欄的值，欄位不存在時回傳空字串。
+    /// （.NET Framework 4.8 沒有 Dictionary.GetValueOrDefault，故自備此輔助方法。）
+    /// </summary>
+    public static string Field(this IReadOnlyDictionary<string, string> row, string key)
+        => row.TryGetValue(key, out var v) ? v : "";
+
     public static List<Dictionary<string, string>> Read(string path)
     {
         var lines = File.ReadAllLines(path);

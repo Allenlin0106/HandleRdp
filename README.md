@@ -1,6 +1,6 @@
 # HandleRdp
 
-針對三個 RDP 相關資料表進行查詢與維護的 **Windows 桌面程式 (C# / .NET 8 WinForms + SQL Server)**。
+針對三個 RDP 相關資料表進行查詢與維護的 **Windows 桌面程式 (C# / .NET Framework 4.8 WinForms + SQL Server)**。
 
 | 資料表 | 功能 | 欄位 |
 | --- | --- | --- |
@@ -30,14 +30,14 @@
 
 ## 設定
 
-連線字串在 `src/HandleRdp/appsettings.json` 的 `ConnectionStrings:RdpDb`，請改成你的 SQL Server：
+連線字串在 `src/HandleRdp/App.config` 的 `connectionStrings/RdpDb`，請改成你的 SQL Server：
 
-```json
-{
-  "ConnectionStrings": {
-    "RdpDb": "Server=你的主機;Database=RDP;User Id=帳號;Password=密碼;TrustServerCertificate=True;"
-  }
-}
+```xml
+<connectionStrings>
+  <add name="RdpDb"
+       connectionString="Server=你的主機;Database=RDP;User Id=帳號;Password=密碼;TrustServerCertificate=True;"
+       providerName="Microsoft.Data.SqlClient" />
+</connectionStrings>
 ```
 
 > 假設三個資料表**已存在**於資料庫中，本專案不含建表腳本。
@@ -50,7 +50,8 @@ dotnet build -c Release
 dotnet run --project src/HandleRdp
 ```
 
-> 這是 `net8.0-windows` WinForms 專案，**必須在 Windows + .NET 8 SDK** 上建置（需 Windows Desktop targeting pack）。
+> 這是 `net48`（.NET Framework 4.8）SDK 樣式 WinForms 專案，**必須在 Windows 上**以 Visual Studio 2022
+> 或已安裝 .NET Framework 4.8 開發包的 `dotnet`/`msbuild` 建置。
 > 本程式碼是在 Linux 容器中撰寫，**尚未經過編譯或實機執行驗證**，請在 Windows 上首次建置時留意編譯訊息。
 
 ## 批次匯入 CSV 格式
@@ -74,7 +75,7 @@ IT,Prod,RDPHOST01,rdp://host01,bob,2026-06-09
 ```
 HandleRdp.sln
 src/HandleRdp/
-  appsettings.json            連線字串
+  App.config                  連線字串
   Program.cs                  進入點
   Models/Models.cs            POCO 與 UserKey
   Data/

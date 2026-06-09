@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Windows.Forms;
 using HandleRdp.Data;
 using HandleRdp.Models;
 
@@ -62,13 +66,13 @@ public sealed class ServerUserTab : TabPage
 
         var users = Csv.Read(path).Select(r => new RdpServerUser
         {
-            Hostname = r.GetValueOrDefault("Hostname", ""),
-            User_ID = r.GetValueOrDefault("User_ID", ""),
-            Employee_ID = r.GetValueOrDefault("Employee_ID", ""),
-            Login_Time = Ui.ParseDate(r.GetValueOrDefault("Login_Time", "")),
-            Logout_Time = Ui.ParseDate(r.GetValueOrDefault("Logout_Time", "")),
-            Create_User = Ui.NullIfEmpty(r.GetValueOrDefault("Create_User", "")),
-            Claim_Time = Ui.ParseDate(r.GetValueOrDefault("Claim_Time", "")),
+            Hostname = r.Field("Hostname"),
+            User_ID = r.Field("User_ID"),
+            Employee_ID = r.Field("Employee_ID"),
+            Login_Time = Ui.ParseDate(r.Field("Login_Time")),
+            Logout_Time = Ui.ParseDate(r.Field("Logout_Time")),
+            Create_User = Ui.NullIfEmpty(r.Field("Create_User")),
+            Claim_Time = Ui.ParseDate(r.Field("Claim_Time")),
         }).ToList();
 
         if (users.Count == 0) { Ui.Info("CSV 沒有可匯入的資料列。"); return; }

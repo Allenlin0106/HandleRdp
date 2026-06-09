@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace HandleRdp.Forms;
 
 /// <summary>單一欄位定義。</summary>

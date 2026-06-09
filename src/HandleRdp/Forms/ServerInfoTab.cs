@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Forms;
 using HandleRdp.Data;
 using HandleRdp.Models;
 
@@ -88,12 +92,12 @@ public sealed class ServerInfoTab : TabPage
 
         var items = Csv.Read(path).Select(r => new RdpServerInfo
         {
-            Department = r.GetValueOrDefault("Department", ""),
-            Category = r.GetValueOrDefault("Category", ""),
-            Hostname = r.GetValueOrDefault("Hostname", ""),
-            Connectstring = r.GetValueOrDefault("Connectstring", ""),
-            Sponsor = Ui.NullIfEmpty(r.GetValueOrDefault("Sponsor", "")),
-            Claim_Time = Ui.ParseDate(r.GetValueOrDefault("Claim_Time", "")),
+            Department = r.Field("Department"),
+            Category = r.Field("Category"),
+            Hostname = r.Field("Hostname"),
+            Connectstring = r.Field("Connectstring"),
+            Sponsor = Ui.NullIfEmpty(r.Field("Sponsor")),
+            Claim_Time = Ui.ParseDate(r.Field("Claim_Time")),
         }).ToList();
 
         if (items.Count == 0) { Ui.Info("CSV 沒有可匯入的資料列。"); return; }
