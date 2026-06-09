@@ -20,6 +20,14 @@ public sealed class FilterableGrid : UserControl
 
     private DataTable? _data;
 
+    /// <summary>勾選欄的欄名（綁定到 DataTable 的一個 bool 欄位）。</summary>
+    public const string SelectColumn = "選取";
+
+    /// <summary>
+    /// 是否在表格左側加上勾選欄，供批次操作逐筆勾選。需在第一次 Bind 之前設定。
+    /// </summary>
+    public bool Selectable { get; set; }
+
     public DataGridView Grid => _grid;
 
     public FilterableGrid()
@@ -71,6 +79,12 @@ public sealed class FilterableGrid : UserControl
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
         _grid.MultiSelect = true;
         _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+        // 讓勾選欄按一下就立即生效（否則要切到別的儲存格才會提交）。
+        _grid.CurrentCellDirtyStateChanged += (_, _) =>
+        {
+            if (_grid.IsCurrentCellDirty)
+                _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        };
 
         _status.Dock = DockStyle.Bottom;
         _status.Height = 22;
@@ -94,19 +108,49 @@ public sealed class FilterableGrid : UserControl
     /// <summary>綁定查詢結果，並重建篩選欄位清單與套用目前篩選。</summary>
     public void Bind(DataTable data)
     {
+        // 勾選模式：在最前面加一個 bool 欄，DataGridView 會自動產生成核取方塊欄。
+        if (Selectable && !data.Columns.Contains(SelectColumn))
+        {
+            var col = new DataColumn(SelectColumn, typeof(bool)) { DefaultValue = false };
+            data.Columns.Add(col);
+            col.SetOrdinal(0);
+        }
+
         _data = data;
+        _grid.ReadOnly = !Selectable;
         _grid.DataSource = data;
+
+        if (Selectable)
+        {
+            // 只有勾選欄可編輯，其餘欄位維持唯讀。
+            foreach (DataGridViewColumn c in _grid.Columns)
+                c.ReadOnly = c.DataPropertyName != SelectColumn;
+            var sc = _grid.Columns[SelectColumn];
+            if (sc != null) { sc.HeaderText = SelectColumn; sc.Width = 50; sc.Frozen = true; }
+        }
 
         var selected = _column.SelectedItem as string;
         _column.Items.Clear();
         foreach (DataColumn col in data.Columns)
-            _column.Items.Add(col.ColumnName);
+            if (col.ColumnName != SelectColumn)
+                _column.Items.Add(col.ColumnName);
         if (selected != null && _column.Items.Contains(selected))
             _column.SelectedItem = selected;
         else if (_column.Items.Count > 0)
             _column.SelectedIndex = 0;
 
         ApplyFilter();
+    }
+
+    /// <summary>取得目前已勾選的列（不受篩選影響，直接讀 DataTable）。</summary>
+    public List<DataRow> CheckedRows()
+    {
+        var rows = new List<DataRow>();
+        if (_data == null || !_data.Columns.Contains(SelectColumn)) return rows;
+        foreach (DataRow r in _data.Rows)
+            if (r[SelectColumn] is bool b && b)
+                rows.Add(r);
+        return rows;
     }
 
     private void ApplyFilter()

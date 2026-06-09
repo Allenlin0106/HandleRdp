@@ -13,12 +13,13 @@ public sealed class ServerUserTab : TabPage
     public ServerUserTab()
     {
         Text = "RDP_SERVER_USER";
+        _grid.Selectable = true; // 啟用左側勾選欄，供批次刪除逐筆勾選
         Controls.Add(_grid);
 
         _grid.AddToolbarButton("重新查詢", (_, _) => Reload());
         _grid.AddToolbarButton("新增", (_, _) => AddOne());
         _grid.AddToolbarButton("批次匯入(CSV)", (_, _) => ImportCsv());
-        _grid.AddToolbarButton("刪除選取(需原因)", (_, _) => DeleteSelected());
+        _grid.AddToolbarButton("刪除勾選(逐筆輸入原因)", (_, _) => DeleteChecked());
 
         Reload();
     }
@@ -78,22 +79,24 @@ public sealed class ServerUserTab : TabPage
         Ui.Info($"已批次新增 {users.Count} 筆。");
     });
 
-    private void DeleteSelected() => Ui.Guard(() =>
+    private void DeleteChecked() => Ui.Guard(() =>
     {
-        var rows = _grid.SelectedRows();
-        if (rows.Count == 0) { Ui.Info("請先選取要刪除的列。"); return; }
+        var rows = _grid.CheckedRows();
+        if (rows.Count == 0) { Ui.Info("請先勾選要刪除的列。"); return; }
 
         var keys = rows
             .Select(r => new UserKey(r["Hostname"].ToString() ?? "", r["User_ID"].ToString() ?? ""))
             .ToList();
 
-        // 強制輸入原因（需求 1）
-        var fields = new List<Field> { new("Reason", "刪除原因", required: true) };
-        using var dlg = new FieldDialog($"刪除 {keys.Count} 筆 — 請輸入原因", fields, width: 480);
+        // 逐筆強制輸入原因（需求 1）：每筆各一個原因輸入欄。
+        var labels = keys.Select(k => $"Hostname={k.Hostname}, User_ID={k.User_ID}").ToList();
+        using var dlg = new BatchReasonDialog($"刪除 {keys.Count} 筆 — 請逐筆輸入原因", labels);
         if (dlg.ShowDialog(this) != DialogResult.OK) return;
 
-        _repo.Delete(keys, dlg.Get("Reason"));
+        // 依勾選順序，把每筆鍵值與其原因配對後逐筆處理。
+        var items = keys.Zip(dlg.Reasons, (k, reason) => (Key: k, Reason: reason)).ToList();
+        _repo.Delete(items);
         Reload();
-        Ui.Info($"已刪除 {keys.Count} 筆，並已寫入 RDP_USER_LOG (Action=DELETE: 原因)。");
+        Ui.Info($"已刪除 {items.Count} 筆，並已逐筆寫入 RDP_USER_LOG (Action=DELETE: 各自原因)。");
     });
 }

@@ -56,21 +56,22 @@ public sealed class RdpServerUserRepository
     }
 
     /// <summary>
-    /// 刪除一筆或多筆（需求 1、2）。reason 為必填，會寫入每一筆對應的日誌。
+    /// 批次刪除（需求 1、2）：每一筆各帶自己的刪除原因，依清單順序逐筆處理。
+    /// 每筆原因皆為必填，分別寫進該筆的 RDP_USER_LOG（Action = "DELETE: 原因"）。
+    /// 整批為單一交易，任何一筆失敗即全部回滾。
     /// </summary>
-    public void Delete(IReadOnlyCollection<UserKey> keys, string reason)
+    public void Delete(IReadOnlyList<(UserKey Key, string Reason)> items)
     {
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new ArgumentException("刪除原因為必填。", nameof(reason));
-        if (keys.Count == 0) return;
-
-        var action = "DELETE: " + reason.Trim();
+        if (items.Count == 0) return;
+        foreach (var (_, reason) in items)
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException("刪除原因為必填。", nameof(items));
 
         using var conn = Db.Open();
         using var tx = conn.BeginTransaction();
         try
         {
-            foreach (var k in keys)
+            foreach (var (k, reason) in items)
             {
                 // 先取出 Employee_ID 與 Sponsor，刪除後才有辦法完整寫日誌。
                 var employeeId = LookupEmployeeId(conn, tx, k);
@@ -81,7 +82,7 @@ public sealed class RdpServerUserRepository
                     throw new InvalidOperationException(
                         $"找不到要刪除的紀錄：Hostname={k.Hostname}, User_ID={k.User_ID}。");
 
-                InsertLog(conn, tx, k.Hostname, k.User_ID, employeeId, sponsor, action);
+                InsertLog(conn, tx, k.Hostname, k.User_ID, employeeId, sponsor, "DELETE: " + reason.Trim());
             }
             tx.Commit();
         }
