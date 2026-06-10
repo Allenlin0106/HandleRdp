@@ -26,7 +26,11 @@
 - **日誌的 `Sponsor`** 是在同一交易內依 `Hostname` 從 `RDP_SERVER_INFO.Sponsor` 查得，查不到則為 `NULL`。
 - **鍵值假設**：`RDP_SERVER_USER` 以 `(Hostname, User_ID)` 唯一識別；`RDP_SERVER_INFO` 以 `Hostname` 為鍵
   （修改/刪除均以此鎖定，Hostname 在修改時不可變更）。若實際主鍵不同請告知。
-- `Create_Time` 在新增時若未指定則自動帶入現在時間；`Claim_Time` 維持使用者輸入（可空）。
+- **時間欄位一律由資料庫在「寫入當下」帶入（`GETDATE()`），不由使用者輸入。**
+  - `RDP_SERVER_USER` 新增：`Login_Time`、`Logout_Time`、`Create_Time`、`Claim_Time` 皆寫入當下時間。
+  - `RDP_SERVER_INFO` 新增：`Create_Time`、`Claim_Time` 皆寫入當下時間。
+  - `RDP_SERVER_INFO` 修改：保留原 `Create_Time`，`Claim_Time` 更新為寫入當下時間。
+  - CSV 匯入時即使含時間欄位也會被忽略，一律以寫入當下時間為準。
 
 ## 設定
 
@@ -59,18 +63,18 @@ bin\Release\HandleRdp.exe
 
 ## 批次匯入 CSV 格式
 
-第一列為標題，欄名需對應資料表欄位（大小寫不拘）。
+第一列為標題，欄名需對應資料表欄位（大小寫不拘）。**時間欄位不需提供（提供也會被忽略），由資料庫於寫入當下帶入。**
 
 `RDP_SERVER_USER`：
 ```csv
-Hostname,User_ID,Employee_ID,Login_Time,Logout_Time,Create_User,Claim_Time
-RDPHOST01,alice,E12345,2026-06-09 09:00,,admin,2026-06-09 09:00
+Hostname,User_ID,Employee_ID,Create_User
+RDPHOST01,alice,E12345,admin
 ```
 
 `RDP_SERVER_INFO`：
 ```csv
-Department,Category,Hostname,Connectstring,Sponsor,Claim_Time
-IT,Prod,RDPHOST01,rdp://host01,bob,2026-06-09
+Department,Category,Hostname,Connectstring,Sponsor
+IT,Prod,RDPHOST01,rdp://host01,bob
 ```
 
 ## 專案結構

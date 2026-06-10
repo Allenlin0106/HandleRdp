@@ -111,21 +111,18 @@ namespace HandleRdp.Data
 
         private static void InsertUser(SqlConnection conn, SqlTransaction tx, RdpServerUser u)
         {
+            // 時間欄位一律由資料庫在寫入當下以 GETDATE() 帶入，不由使用者輸入。
             const string sql = @"
                 INSERT INTO RDP_SERVER_USER
                     (Hostname, User_ID, Employee_ID, Login_Time, Logout_Time, Create_User, Create_Time, Claim_Time)
                 VALUES
-                    (@Hostname, @User_ID, @Employee_ID, @Login_Time, @Logout_Time, @Create_User, @Create_Time, @Claim_Time)";
+                    (@Hostname, @User_ID, @Employee_ID, GETDATE(), GETDATE(), @Create_User, GETDATE(), GETDATE())";
             using (var cmd = new SqlCommand(sql, conn, tx))
             {
                 Db.AddParam(cmd, "@Hostname", u.Hostname);
                 Db.AddParam(cmd, "@User_ID", u.User_ID);
                 Db.AddParam(cmd, "@Employee_ID", u.Employee_ID);
-                Db.AddParam(cmd, "@Login_Time", u.Login_Time);
-                Db.AddParam(cmd, "@Logout_Time", u.Logout_Time);
                 Db.AddParam(cmd, "@Create_User", u.Create_User);
-                Db.AddParam(cmd, "@Create_Time", u.Create_Time ?? DateTime.Now);
-                Db.AddParam(cmd, "@Claim_Time", u.Claim_Time);
                 cmd.ExecuteNonQuery();
             }
         }
@@ -167,11 +164,12 @@ namespace HandleRdp.Data
             SqlConnection conn, SqlTransaction tx,
             string hostname, string userId, string employeeId, string sponsor, string action)
         {
+            // 日誌的 Claim_Time 同樣由資料庫於寫入當下帶入。
             const string sql = @"
                 INSERT INTO RDP_USER_LOG
                     (Hostname, User_ID, Employee_ID, Sponsor, Action, Claim_Time)
                 VALUES
-                    (@Hostname, @User_ID, @Employee_ID, @Sponsor, @Action, @Claim_Time)";
+                    (@Hostname, @User_ID, @Employee_ID, @Sponsor, @Action, GETDATE())";
             using (var cmd = new SqlCommand(sql, conn, tx))
             {
                 Db.AddParam(cmd, "@Hostname", hostname);
@@ -179,7 +177,6 @@ namespace HandleRdp.Data
                 Db.AddParam(cmd, "@Employee_ID", employeeId);
                 Db.AddParam(cmd, "@Sponsor", sponsor);
                 Db.AddParam(cmd, "@Action", action);
-                Db.AddParam(cmd, "@Claim_Time", DateTime.Now);
                 cmd.ExecuteNonQuery();
             }
         }

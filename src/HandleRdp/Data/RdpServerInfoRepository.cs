@@ -56,14 +56,14 @@ namespace HandleRdp.Data
         /// <summary>依 Hostname 修改其餘欄位。</summary>
         public void Update(RdpServerInfo info)
         {
+            // Create_Time 為建立時間，修改時保留原值（不在 SET 內）；Claim_Time 更新為寫入當下時間。
             const string sql = @"
                 UPDATE RDP_SERVER_INFO
                    SET Department = @Department,
                        Category = @Category,
                        Connectstring = @Connectstring,
                        Sponsor = @Sponsor,
-                       Create_Time = @Create_Time,
-                       Claim_Time = @Claim_Time
+                       Claim_Time = GETDATE()
                  WHERE Hostname = @Hostname";
             using (var conn = Db.Open())
             using (var cmd = new SqlCommand(sql, conn))
@@ -107,11 +107,12 @@ namespace HandleRdp.Data
 
         private static void Insert(SqlConnection conn, SqlTransaction tx, RdpServerInfo info)
         {
+            // Create_Time/Claim_Time 由資料庫於寫入當下以 GETDATE() 帶入。
             const string sql = @"
                 INSERT INTO RDP_SERVER_INFO
                     (Department, Category, Hostname, Connectstring, Sponsor, Create_Time, Claim_Time)
                 VALUES
-                    (@Department, @Category, @Hostname, @Connectstring, @Sponsor, @Create_Time, @Claim_Time)";
+                    (@Department, @Category, @Hostname, @Connectstring, @Sponsor, GETDATE(), GETDATE())";
             using (var cmd = new SqlCommand(sql, conn, tx))
             {
                 Db.AddParam(cmd, "@Hostname", info.Hostname);
@@ -126,8 +127,6 @@ namespace HandleRdp.Data
             Db.AddParam(cmd, "@Category", info.Category);
             Db.AddParam(cmd, "@Connectstring", info.Connectstring);
             Db.AddParam(cmd, "@Sponsor", info.Sponsor);
-            Db.AddParam(cmd, "@Create_Time", info.Create_Time ?? DateTime.Now);
-            Db.AddParam(cmd, "@Claim_Time", info.Claim_Time);
         }
     }
 }

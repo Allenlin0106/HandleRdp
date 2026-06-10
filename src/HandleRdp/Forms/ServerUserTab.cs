@@ -35,15 +35,13 @@ namespace HandleRdp.Forms
         {
             Ui.Guard(() =>
             {
+                // 時間欄位由資料庫於寫入當下帶入，不在此輸入。
                 var fields = new List<Field>
                 {
                     new Field("Hostname", "Hostname", required: true),
                     new Field("User_ID", "User_ID", required: true),
                     new Field("Employee_ID", "Employee_ID", required: true),
-                    new Field("Login_Time", "Login_Time"),
-                    new Field("Logout_Time", "Logout_Time"),
                     new Field("Create_User", "Create_User", System.Environment.UserName),
-                    new Field("Claim_Time", "Claim_Time"),
                 };
                 using (var dlg = new FieldDialog("新增 RDP_SERVER_USER", fields))
                 {
@@ -54,10 +52,7 @@ namespace HandleRdp.Forms
                         Hostname = dlg.Get("Hostname"),
                         User_ID = dlg.Get("User_ID"),
                         Employee_ID = dlg.Get("Employee_ID"),
-                        Login_Time = Ui.ParseDate(dlg.Get("Login_Time")),
-                        Logout_Time = Ui.ParseDate(dlg.Get("Logout_Time")),
                         Create_User = Ui.NullIfEmpty(dlg.Get("Create_User")),
-                        Claim_Time = Ui.ParseDate(dlg.Get("Claim_Time")),
                     });
                 }
                 Reload();
@@ -72,15 +67,13 @@ namespace HandleRdp.Forms
                 var path = Ui.PickCsv();
                 if (path == null) return;
 
+                // 時間欄位忽略 CSV 內容，由資料庫於寫入當下帶入。
                 var users = Csv.Read(path).Select(r => new RdpServerUser
                 {
                     Hostname = r.Field("Hostname"),
                     User_ID = r.Field("User_ID"),
                     Employee_ID = r.Field("Employee_ID"),
-                    Login_Time = Ui.ParseDate(r.Field("Login_Time")),
-                    Logout_Time = Ui.ParseDate(r.Field("Logout_Time")),
                     Create_User = Ui.NullIfEmpty(r.Field("Create_User")),
-                    Claim_Time = Ui.ParseDate(r.Field("Claim_Time")),
                 }).ToList();
 
                 if (users.Count == 0) { Ui.Info("CSV 沒有可匯入的資料列。"); return; }

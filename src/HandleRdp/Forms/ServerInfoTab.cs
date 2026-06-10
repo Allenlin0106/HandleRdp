@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -34,6 +33,7 @@ namespace HandleRdp.Forms
 
         private static List<Field> BuildFields(RdpServerInfo src, bool hostnameReadOnly)
         {
+            // 時間欄位（Create_Time/Claim_Time）由資料庫於寫入當下帶入，不在此輸入。
             return new List<Field>
             {
                 new Field("Hostname", "Hostname", src?.Hostname ?? "", readOnly: hostnameReadOnly, required: true),
@@ -41,7 +41,6 @@ namespace HandleRdp.Forms
                 new Field("Category", "Category", src?.Category ?? "", required: true),
                 new Field("Connectstring", "Connectstring", src?.Connectstring ?? ""),
                 new Field("Sponsor", "Sponsor", src?.Sponsor ?? ""),
-                new Field("Claim_Time", "Claim_Time", src?.Claim_Time?.ToString() ?? ""),
             };
         }
 
@@ -54,7 +53,6 @@ namespace HandleRdp.Forms
                 Category = dlg.Get("Category"),
                 Connectstring = dlg.Get("Connectstring"),
                 Sponsor = Ui.NullIfEmpty(dlg.Get("Sponsor")),
-                Claim_Time = Ui.ParseDate(dlg.Get("Claim_Time")),
             };
         }
 
@@ -87,7 +85,6 @@ namespace HandleRdp.Forms
                     Category = row["Category"].ToString(),
                     Connectstring = row["Connectstring"].ToString(),
                     Sponsor = row["Sponsor"] as string,
-                    Claim_Time = row["Claim_Time"] as DateTime?,
                 };
 
                 // Hostname 為鍵值，修改時鎖定不可改。
@@ -108,6 +105,7 @@ namespace HandleRdp.Forms
                 var path = Ui.PickCsv();
                 if (path == null) return;
 
+                // 時間欄位忽略 CSV 內容，由資料庫於寫入當下帶入。
                 var items = Csv.Read(path).Select(r => new RdpServerInfo
                 {
                     Department = r.Field("Department"),
@@ -115,7 +113,6 @@ namespace HandleRdp.Forms
                     Hostname = r.Field("Hostname"),
                     Connectstring = r.Field("Connectstring"),
                     Sponsor = Ui.NullIfEmpty(r.Field("Sponsor")),
-                    Claim_Time = Ui.ParseDate(r.Field("Claim_Time")),
                 }).ToList();
 
                 if (items.Count == 0) { Ui.Info("CSV 沒有可匯入的資料列。"); return; }
