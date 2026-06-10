@@ -2,25 +2,33 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace HandleRdp.Forms
 {
     /// <summary>
-    /// 可重用的「資料表格 + 篩選列 + 工具列」控制項（需求 3：對查詢結果提供篩選條件）。
-    /// 三個分頁共用同一份篩選/顯示邏輯，避免重複。
+    /// 可重用的「資料表格 + 工具列」控制項（需求 3：類似 Excel 的欄位篩選）。
+    /// 三個分頁共用同一份篩選/顯示邏輯。
     ///
-    /// 篩選作法：資料載入 DataTable 後，使用 DataView.RowFilter 在「已查詢的結果」上即時篩選，
-    /// 透過 CONVERT(...,'System.String') 讓任意型別欄位都能用文字比對，不必管欄位型別。
+    /// 篩選作法（需求：DataGridView 有資料後才篩選）：
+    ///   - 資料載入 DataTable 後，點任一欄位的標題即彈出類 Excel 的下拉視窗，
+    ///     可對該欄升/降冪排序、並用核取清單勾選要顯示的值。
+    ///   - 各欄條件以 DataView.RowFilter（CONVERT 成字串後比對）即時套用在「已查詢的結果」上，
+    ///     多欄條件以 AND 合併。
     /// </summary>
     public sealed class FilterableGrid : UserControl
     {
         private readonly DataGridView _grid = new DataGridView();
         private readonly FlowLayoutPanel _toolbar = new FlowLayoutPanel();
-        private readonly ComboBox _column = new ComboBox();
-        private readonly ComboBox _op = new ComboBox();
-        private readonly TextBox _value = new TextBox();
         private readonly Label _status = new Label();
+
+        // 每個有套用篩選的欄位 -> 允許顯示的字串值集合（不在字典中表示該欄不篩選）。
+        private readonly Dictionary<string, HashSet<string>> _filters =
+            new Dictionary<string, HashSet<string>>();
+        private string _sortColumn;
+        private bool _sortAsc;
 
         private DataTable _data;
 
@@ -38,42 +46,13 @@ namespace HandleRdp.Forms
         {
             Dock = DockStyle.Fill;
 
-            // 上方工具列（各分頁自行加入按鈕）
+            // 上方工具列（各分頁自行加入按鈕；內建一個清除篩選鈕）。
             _toolbar.Dock = DockStyle.Top;
             _toolbar.Height = 40;
             _toolbar.Padding = new Padding(4);
             _toolbar.WrapContents = false;
             _toolbar.AutoScroll = true;
-
-            // 篩選列
-            var filterBar = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 40,
-                Padding = new Padding(4),
-                WrapContents = false,
-                AutoScroll = true,
-            };
-            _column.DropDownStyle = ComboBoxStyle.DropDownList;
-            _column.Width = 160;
-            _op.DropDownStyle = ComboBoxStyle.DropDownList;
-            _op.Width = 90;
-            _op.Items.AddRange(new object[] { "包含", "等於", "開頭為" });
-            _op.SelectedIndex = 0;
-            _value.Width = 200;
-
-            var apply = new Button { Text = "套用篩選", AutoSize = true };
-            apply.Click += (sender, e) => ApplyFilter();
-            var clear = new Button { Text = "清除", AutoSize = true };
-            clear.Click += (sender, e) => { _value.Text = ""; ApplyFilter(); };
-            _value.KeyDown += (sender, e) => { if (e.KeyCode == Keys.Enter) { ApplyFilter(); e.SuppressKeyPress = true; } };
-
-            filterBar.Controls.Add(new Label { Text = "篩選欄位：", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
-            filterBar.Controls.Add(_column);
-            filterBar.Controls.Add(_op);
-            filterBar.Controls.Add(_value);
-            filterBar.Controls.Add(apply);
-            filterBar.Controls.Add(clear);
+            AddToolbarButton("清除篩選", (sender, e) => ClearFilters());
 
             // 表格
             _grid.Dock = DockStyle.Fill;
@@ -83,6 +62,8 @@ namespace HandleRdp.Forms
             _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _grid.MultiSelect = true;
             _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            // 點欄位標題 -> 開啟類 Excel 的篩選/排序下拉。
+            _grid.ColumnHeaderMouseClick += OnHeaderClick;
             // 讓勾選欄按一下就立即生效（否則要切到別的儲存格才會提交）。
             _grid.CurrentCellDirtyStateChanged += (sender, e) =>
             {
@@ -96,7 +77,6 @@ namespace HandleRdp.Forms
             _status.Padding = new Padding(6, 0, 0, 0);
 
             Controls.Add(_grid);
-            Controls.Add(filterBar);
             Controls.Add(_toolbar);
             Controls.Add(_status);
         }
@@ -109,7 +89,7 @@ namespace HandleRdp.Forms
             _toolbar.Controls.Add(btn);
         }
 
-        /// <summary>綁定查詢結果，並重建篩選欄位清單與套用目前篩選。</summary>
+        /// <summary>綁定查詢結果。每次重新查詢都會清掉舊的篩選與排序（回到全部顯示）。</summary>
         public void Bind(DataTable data)
         {
             // 勾選模式：在最前面加一個 bool 欄，DataGridView 會自動產生成核取方塊欄。
@@ -121,27 +101,25 @@ namespace HandleRdp.Forms
             }
 
             _data = data;
+            _filters.Clear();
+            _sortColumn = null;
+
             _grid.ReadOnly = !Selectable;
             _grid.DataSource = data;
 
-            if (Selectable)
+            foreach (DataGridViewColumn c in _grid.Columns)
             {
-                // 只有勾選欄可編輯，其餘欄位維持唯讀。
-                foreach (DataGridViewColumn c in _grid.Columns)
+                // 排序改由標題下拉處理，停用內建點標題排序。
+                c.SortMode = DataGridViewColumnSortMode.NotSortable;
+                if (Selectable)
                     c.ReadOnly = c.DataPropertyName != SelectColumn;
-                var sc = _grid.Columns[SelectColumn];
-                if (sc != null) { sc.HeaderText = SelectColumn; sc.Width = 50; sc.Frozen = true; }
             }
 
-            var selected = _column.SelectedItem as string;
-            _column.Items.Clear();
-            foreach (DataColumn col in data.Columns)
-                if (col.ColumnName != SelectColumn)
-                    _column.Items.Add(col.ColumnName);
-            if (selected != null && _column.Items.Contains(selected))
-                _column.SelectedItem = selected;
-            else if (_column.Items.Count > 0)
-                _column.SelectedIndex = 0;
+            if (Selectable)
+            {
+                var sc = _grid.Columns[SelectColumn];
+                if (sc != null) { sc.Width = 50; sc.Frozen = true; }
+            }
 
             ApplyFilter();
         }
@@ -170,31 +148,85 @@ namespace HandleRdp.Forms
             return rows;
         }
 
+        /// <summary>清除所有欄位的篩選與排序。</summary>
+        public void ClearFilters()
+        {
+            _filters.Clear();
+            _sortColumn = null;
+            ApplyFilter();
+        }
+
+        private void OnHeaderClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (_data == null || e.ColumnIndex < 0) return;
+
+            var name = _grid.Columns[e.ColumnIndex].DataPropertyName;
+            if (string.IsNullOrEmpty(name) || name == SelectColumn) return;
+
+            _filters.TryGetValue(name, out var current);
+            using (var popup = new ColumnFilterPopup(DistinctValues(name), current))
+            {
+                var headerRect = _grid.GetCellDisplayRectangle(e.ColumnIndex, -1, true);
+                popup.Location = _grid.PointToScreen(new Point(headerRect.Left, headerRect.Bottom));
+
+                if (popup.ShowDialog(this) != DialogResult.OK) return;
+
+                if (popup.Selected == null) _filters.Remove(name);
+                else _filters[name] = popup.Selected;
+
+                if (popup.Sort == ColumnFilterPopup.SortChoice.Asc) { _sortColumn = name; _sortAsc = true; }
+                else if (popup.Sort == ColumnFilterPopup.SortChoice.Desc) { _sortColumn = name; _sortAsc = false; }
+
+                ApplyFilter();
+            }
+        }
+
+        private List<string> DistinctValues(string col)
+        {
+            var set = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+            foreach (DataRow r in _data.Rows)
+            {
+                var v = r[col];
+                set.Add(v == null || v == DBNull.Value ? "" : Convert.ToString(v, CultureInfo.CurrentCulture));
+            }
+            return set.ToList();
+        }
+
         private void ApplyFilter()
         {
             if (_data == null) return;
 
-            var text = _value.Text.Trim();
-            var col = _column.SelectedItem as string;
-            if (text.Length == 0 || col == null)
+            var clauses = new List<string>();
+            foreach (var kv in _filters)
             {
-                _data.DefaultView.RowFilter = "";
-            }
-            else
-            {
-                var v = text.Replace("'", "''");
-                var expr = "CONVERT([" + col + "], 'System.String')";
-                string filter;
-                switch (_op.SelectedIndex)
-                {
-                    case 1: filter = expr + " = '" + v + "'"; break;
-                    case 2: filter = expr + " LIKE '" + v + "%'"; break;
-                    default: filter = expr + " LIKE '%" + v + "%'"; break;
-                }
-                _data.DefaultView.RowFilter = filter;
+                if (kv.Value.Count == 0) { clauses.Add("1 = 0"); continue; } // 全部取消 -> 不顯示任何列
+                var quoted = string.Join(", ", kv.Value.Select(v => "'" + v.Replace("'", "''") + "'"));
+                clauses.Add("ISNULL(CONVERT([" + kv.Key + "], 'System.String'), '') IN (" + quoted + ")");
             }
 
+            _data.DefaultView.RowFilter = string.Join(" AND ", clauses);
+            _data.DefaultView.Sort = _sortColumn == null
+                ? ""
+                : "[" + _sortColumn + "] " + (_sortAsc ? "ASC" : "DESC");
+
+            UpdateHeaderIndicators();
             _status.Text = "顯示 " + _data.DefaultView.Count + " / 共 " + _data.Rows.Count + " 筆";
+        }
+
+        /// <summary>在欄位標題標示是否套用篩選（▽）與排序方向（↑/↓）。</summary>
+        private void UpdateHeaderIndicators()
+        {
+            foreach (DataGridViewColumn c in _grid.Columns)
+            {
+                var name = c.DataPropertyName;
+                if (string.IsNullOrEmpty(name)) continue;
+                if (name == SelectColumn) { c.HeaderText = SelectColumn; continue; }
+
+                var mark = "";
+                if (_filters.ContainsKey(name)) mark += " ▽";
+                if (_sortColumn == name) mark += _sortAsc ? " ↑" : " ↓";
+                c.HeaderText = name + mark;
+            }
         }
     }
 }

@@ -17,7 +17,7 @@
 2. **批次處理**：CSV 匯入可一次新增多筆。批次刪除 `RDP_SERVER_USER` 時，於表格左側的
    **勾選欄**逐筆勾選，按「刪除勾選」後彈出視窗，**逐筆輸入各別原因**（皆為必填），再依序處理；
    每筆寫入自己的 `RDP_USER_LOG`。整批為單一交易，任一筆失敗即全部回滾。
-3. **篩選條件**：查詢結果可在任一欄位上以「包含 / 等於 / 開頭為」即時篩選（用戶端 `DataView.RowFilter`，不需重新查資料庫）。
+3. **篩選條件（類 Excel）**：查詢出資料後，點任一欄位標題即彈出下拉視窗，可對該欄升/降冪排序、並以核取清單勾選要顯示的值；多欄條件以 AND 合併（用戶端 `DataView.RowFilter`，不需重新查資料庫）。工具列另有「清除篩選」可一鍵還原。
 
 ## 需要你確認的設計決定（與既有 schema 的取捨）
 
@@ -91,7 +91,8 @@ src/HandleRdp/
   Forms/
     MainForm.cs              三個分頁的主視窗
     ServerUserTab.cs / ServerInfoTab.cs / UserLogTab.cs
-    FilterableGrid.cs        可重用的表格 + 篩選列 + 工具列（可選的勾選欄）
+    FilterableGrid.cs        可重用的表格 + 工具列（類 Excel 欄位篩選、可選的勾選欄）
+    ColumnFilterPopup.cs     欄位標題點擊後的排序/勾選篩選下拉視窗
     FieldDialog.cs           通用輸入對話框（含必填驗證）
     BatchReasonDialog.cs     批次刪除時逐筆輸入原因的對話框
     Csv.cs                   批次匯入用的極簡 CSV 讀取器

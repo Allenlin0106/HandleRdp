@@ -50,6 +50,7 @@
     <Compile Include="Forms\Ui.cs" />
     <Compile Include="Forms\FieldDialog.cs" />
     <Compile Include="Forms\BatchReasonDialog.cs" />
+    <Compile Include="Forms\ColumnFilterPopup.cs" />
     <Compile Include="Forms\FilterableGrid.cs" />
     <Compile Include="Forms\MainForm.cs" />
     <Compile Include="Forms\ServerUserTab.cs" />
