@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HandleRdp.Worker</RootNamespace>
+    <UserSecretsId>dotnet-HandleRdp.Worker</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- System.Messaging (MSMQ) is not part of the .NET (Core) BCL; this package
+         restores it for .NET 5+ on Windows. Requires the Windows "Message Queuing"
+         feature to be installed on the host. -->
+    <PackageReference Include="Experimental.System.Messaging" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>
